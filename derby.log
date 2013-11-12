@@ -1,0 +1,10 @@
+----------------------------------------------------------------
+2013-11-09 21:41:52.349 GMT:
+ Booting Derby version The Apache Software Foundation - Apache Derby - 10.6.1.0 - (938214): instance a816c00e-0142-3ed0-5e2a-000003944598 
+on database directory memory:/Users/carnellj/MuleStudio/workspace/madjugprojectexample/customerDB   with class loader sun.misc.Launcher$AppClassLoader@1242719c
+
+Database Class Loader started - derby.database.classpath=''
+
+2013-11-12 02:23:51.416 GMT:
+Shutting down instance a816c00e-0142-3ed0-5e2a-000003944598 with class loader sun.misc.Launcher$AppClassLoader@1242719c 
+----------------------------------------------------------------

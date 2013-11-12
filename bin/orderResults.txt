@@ -1,0 +1,23 @@
+Dear Comrade #[ flowVars.customerInfo[0]['LAST_NAME'] ],
+
+Thank you for your order.   We have shipped your order of:
+
+Stuff
+
+to the following Shipping Address:
+
+Attention:
+#[ flowVars.customerInfo[0]['FIRST_NAME'] ] #[ flowVars.customerInfo[0]['LAST_NAME'] ]
+#[ flowVars.customerInfo[0]['STREET_ADDRESS'] ]
+#[ flowVars.customerInfo[0]['CITY'] ], #[ flowVars.customerInfo[0]['STATE'] ], #[ flowVars.customerInfo[0]['ZIP'] ]
+
+Here is what you ordered:
+
+Items Purchased		Quantity
+---------------		--------
+#[ flowVars.customerText ]
+
+Please think of this in the future.  Power to the people.
+
+   Sincerely,
+      Comrade Cookies

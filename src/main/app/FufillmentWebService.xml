@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:sftp="http://www.mulesoft.org/schema/mule/sftp" xmlns:jdbc-ee="http://www.mulesoft.org/schema/mule/ee/jdbc" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:cxf="http://www.mulesoft.org/schema/mule/cxf"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" xmlns:core="http://www.mulesoft.org/schema/mule/core"
+	xmlns:sfdc="http://www.mulesoft.org/schema/mule/sfdc" xmlns:salesforce="http://www.mulesoft.org/schema/mule/sfdc"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="EE-3.4.1"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/cxf http://www.mulesoft.org/schema/mule/cxf/current/mule-cxf.xsd
+http://www.mulesoft.org/schema/mule/ee/jdbc http://www.mulesoft.org/schema/mule/ee/jdbc/current/mule-jdbc-ee.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/sfdc http://www.mulesoft.org/schema/mule/sfdc/4.0/mule-sfdc.xsd
+http://www.mulesoft.org/schema/mule/sftp http://www.mulesoft.org/schema/mule/sftp/current/mule-sftp.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd">
+    <jms:activemq-connector name="Active_MQ" brokerURL="tcp://localhost:61616" validateConnections="true" doc:name="Active MQ"/>
+    <jdbc-ee:derby-data-source name="CUSTOMER_DERBY_DATABASE" url="jdbc:derby:memory:customerDB;create=true" transactionIsolation="UNSPECIFIED" doc:name="Derby Data Source" password=""/>
+    <jdbc-ee:connector name="jdbcConnector" dataSource-ref="CUSTOMER_DERBY_DATABASE" validateConnections="true" queryTimeout="-1" pollingFrequency="0" doc:name="Database"/>
+	 <spring:beans>
+        <spring:bean id="SetupDatabaseNotificationListener" class="org.ordermgmt.SetupDatabaseNotificationListener" name="Bean"/>
+    </spring:beans>
+	<flow name="Fulfillment_LegacySystemModernization" doc:name="Fulfillment_LegacySystemModernization"
+		doc:description="This is a simple Mule Studio project that illustrates a Legacy System Modernization use case.">
+		<http:inbound-endpoint exchange-pattern="request-response"
+			host="localhost" port="1080" path="OrderFulfillment" doc:name="Receive Order"
+			doc:description="Process HTTP reqests or responses." />
+		<cxf:jaxws-service port="80" serviceClass="org.ordermgmt.IFulfillment"
+			enableMuleSoapHeaders="false" doc:name="FulfillmentWebService"
+			doc:description="Make a web service available via CXF" />
+		<component class="org.ordermgmt.FulfillmentImpl" doc:name="Process Order"
+			doc:description="Invoke a Java component" />
+		<async doc:name="Async - Legacy Fulfillment Service">
+			<mulexml:object-to-xml-transformer
+				doc:name="Transform-to-Xml" />
+            <all doc:name="All">
+                <jms:outbound-endpoint queue="emailXML" connector-ref="Active_MQ" doc:name="JMS"/>
+                <processor-chain>
+                    <mulexml:xslt-transformer maxIdleTransformers="2" maxActiveTransformers="5" xsl-file="src/main/resources/XML2FLAT_FILE.xsl" doc:name="Legacy Transform(XSLT)"/>
+                    <byte-array-to-string-transformer doc:name="Transform-to-String"/>
+                    <component class="org.ordermgmt.TaxableExample" doc:name="Java"/>
+                    <logger message="LEGACY MESSAGE --&gt; #[message.payload]" level="INFO" doc:name="Logger"/>
+                    <file:outbound-endpoint path="src/test/resources/Output" outputPattern="ShippingOrder-#[function:datestamp].txt" doc:name="LegacyFulfillment"/>
+                    <sftp:outbound-endpoint exchange-pattern="one-way" outputPattern="ShippingOrder-#[function:datestamp].txt" host="localhost" port="22" path="/tmp/outputfiles" user="carnellj" password="2blackbelt" responseTimeout="10000" doc:name="Secure FTP"/>
+                </processor-chain>
+            </all>
+		</async>
+	</flow>
+    <flow name="FufillmentGenerateEmailFlow" doc:name="FufillmentGenerateEmailFlow">
+        <jms:inbound-endpoint queue="emailXML" connector-ref="Active_MQ" doc:name="JMS"/>
+        <flow-ref name="FufillmentLookupCustomerFLow" doc:name="Lookup Customer Information"/>
+        <smtp:outbound-endpoint host="localhost" port="2525" to="#[ flowVars.customerInfo[0]['EMAIL'] ]" from="orders@comradecookies.com" subject="Test message" responseTimeout="10000" doc:name="SMTP"/>
+    </flow>
+    <sub-flow name="FufillmentLookupCustomerFLow" doc:name="FufillmentLookupCustomerFLow">
+        <set-variable variableName="originalXML" value="#[message.payload]" doc:name="originalXML"/>
+        <jdbc-ee:outbound-endpoint exchange-pattern="request-response" queryKey="SELECT" queryTimeout="-1" connector-ref="jdbcConnector" doc:name="SELECT_CUSTOMER_INFO">
+            <jdbc-ee:query key="SELECT" value="SELECT * FROM Customers
+WHERE email = #[xpath('//shippingOrder/customerId').getText()]"/>
+        </jdbc-ee:outbound-endpoint>
+        <expression-component doc:name="Restore Payload/Save Customer Info">flowVars.customerInfo = message.payload;
+message.payload=flowVars.originalXML</expression-component>
+        <mulexml:xslt-transformer maxIdleTransformers="2" maxActiveTransformers="5" xsl-file="XML2Text.xsl" doc:name="Build Customer Order Bloc"/>
+         <byte-array-to-string-transformer doc:name="Transform-to-String"/>
+        <expression-component doc:name="Build Customer Text"><![CDATA[flowVars.customerText = message.payload;
+message.payload=flowVars.originalXML]]></expression-component>
+        <parse-template location="orderResults.txt" doc:name="Parse Template"/>
+    </sub-flow>
+</mule>

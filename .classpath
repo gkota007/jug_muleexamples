@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry exported="true" kind="con" path="MULE_RUNTIME"/>
+	<classpathentry kind="src" path="src/main/java"/>
+	<classpathentry kind="src" path="src/test/java"/>
+	<classpathentry kind="src" path="src/main/resources"/>
+	<classpathentry kind="src" path="src/test/resources"/>
+	<classpathentry kind="lib" path="/Users/carnellj/opt/apache-activemq-5.9.0/lib/activemq-kahadb-store-5.9.0.jar"/>
+	<classpathentry kind="lib" path="/Users/carnellj/opt/apache-activemq-5.9.0/lib/activemq-protobuf-1.1.jar"/>
+	<classpathentry kind="lib" path="/Users/carnellj/opt/apache-activemq-5.9.0/lib/activemq-openwire-legacy-5.9.0.jar"/>
+	<classpathentry kind="lib" path="/Users/carnellj/opt/apache-activemq-5.9.0/lib/hawtbuf-1.9.jar"/>
+	<classpathentry kind="lib" path="/Users/carnellj/opt/apache-activemq-5.9.0/lib/activemq-client-5.9.0.jar"/>
+	<classpathentry kind="lib" path="/Users/carnellj/opt/apache-activemq-5.9.0/lib/activemq-broker-5.9.0.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
